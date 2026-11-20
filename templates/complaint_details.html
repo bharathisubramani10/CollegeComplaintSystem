@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}{{ complaint.ticket_id }} - Complaint Details{% endblock %}
+{% block page_title %}{{ complaint.ticket_id }} Details{% endblock %}
+{% block breadcrumb %}
+  <a href="{% if current_user.role == 'student' %}{{ url_for('student_complaints') }}{% elif current_user.role == 'staff' %}{{ url_for('staff_complaints') }}{% else %}{{ url_for('admin_complaints') }}{% endif %}">Complaints</a> &rsaquo; {{ complaint.ticket_id }}
+{% endblock %}
+
+{% block content %}
+<!-- Ticket Header Bar -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span class="ticket-code" style="font-size: 18px; padding: 6px 14px;">{{ complaint.ticket_id }}</span>
+      <span class="badge badge-cat" style="font-size: 13px; padding: 6px 12px;">{{ complaint.category }}</span>
+      {% if complaint.status == 'Pending' %}
+        <span class="badge badge-pending" style="font-size: 13px; padding: 6px 12px;"><span class="badge-dot"></span>Pending</span>
+      {% elif complaint.status == 'Assigned' %}
+        <span class="badge badge-assigned" style="font-size: 13px; padding: 6px 12px;"><span class="badge-dot"></span>Assigned</span>
+      {% elif complaint.status == 'In Progress' %}
+        <span class="badge badge-in-progress" style="font-size: 13px; padding: 6px 12px;"><span class="badge-dot"></span>In Progress</span>
+      {% elif complaint.status in ('Resolved', 'Closed') %}
+        <span class="badge badge-resolved" style="font-size: 13px; padding: 6px 12px;"><span class="badge-dot"></span>Resolved</span>
+      {% endif %}
+    </div>
+
+    <!-- Contextual Action Buttons -->
+    <div style="display: flex; gap: 10px; align-items: center;">
+      {% if current_user.role == 'student' and complaint.status in ('Resolved', 'Closed') and not complaint.feedback_id %}
+        <a href="{{ url_for('submit_feedback', id=complaint.id) }}" class="btn btn-warning">
+          <span>⭐</span> Submit Feedback
+        </a>
+      {% endif %}
+
+      {% if current_user.role in ('staff', 'admin') %}
+        <button type="button" class="btn btn-primary" data-modal-target="#statusUpdateModal">
+          <span>🔄</span> Update Status
+        </button>
+      {% endif %}
+
+      {% if current_user.role == 'admin' %}
+        <button type="button" class="btn btn-secondary" data-modal-target="#assignModal">
+          <span>📌</span> Assign Dept / Staff
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+  <!-- Left Column: Complaint Details & Timeline -->
+  <div>
+    <!-- Main Description Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>📄</span> {{ complaint.title }}</h3>
+      </div>
+      <div class="card-body">
+        <div style="font-size: 15px; color: var(--text-primary); line-height: 1.7; white-space: pre-line; margin-bottom: 20px;">
+          {{ complaint.description }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; background: #f8fafc; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-size: 13px;">
+          <div>
+            <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Location</span>
+            <strong>📍 {{ complaint.location or 'General Campus' }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Date Filed</span>
+            <strong>{{ complaint.created_at[:16] }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Last Status Update</span>
+            <strong>{{ complaint.updated_at[:16] }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Feedback Display Card (if present) -->
+    {% if complaint.feedback_id %}
+      <div class="card" style="border-left: 4px solid #f59e0b;">
+        <div class="card-header" style="background: #fffbeb;">
+          <h3 style="color: #92400e;"><span>⭐</span> Student Resolution Feedback</h3>
+          <div class="rating-display">
+            {% for i in range(1, 6) %}
+              {% if i <= complaint.feedback_rating %}
+                <span>★</span>
+              {% else %}
+                <span class="star-empty">★</span>
+              {% endif %}
+            {% endfor %}
+            <strong style="margin-left: 6px; font-size: 14px;">({{ complaint.feedback_rating }}/5 Stars)</strong>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 14px; font-style: italic; color: var(--text-primary); margin-bottom: 8px;">
+            "{{ complaint.feedback_comments or 'No written comments provided.' }}"
+          </p>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            Submitted on {{ complaint.feedback_created_at[:16] }} by {{ complaint.student_name }}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Chronological Resolution Timeline -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>🕒</span> Resolution Timeline &amp; Activity Log</h3>
+      </div>
+      <div class="card-body">
+        {% if updates %}
+          <div class="timeline">
+            {% for u in updates %}
+              <div class="timeline-item">
+                <div class="timeline-dot status-{{ u.status | replace(' ', '-') }}"></div>
+                <div class="timeline-card">
+                  <div class="timeline-header">
+                    <div>
+                      <span class="timeline-author">{{ u.author_name }}</span>
+                      <span class="badge badge-cat" style="font-size: 10px; margin-left: 6px; text-transform: uppercase;">
+                        {{ u.author_role }}
+                      </span>
+                      <span style="margin-left: 8px; font-size: 12px; font-weight: 600; color: var(--accent);">
+                        &rarr; Status: {{ u.status }}
+                      </span>
+                    </div>
+                    <span class="timeline-time">{{ u.created_at[:16] }}</span>
+                  </div>
+                  <div class="timeline-body">
+                    {{ u.comment }}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="color: var(--text-muted);">No activity recorded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Meta Info Sidecards -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <!-- Student Information Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>👤</span> Student Details</h3>
+      </div>
+      <div class="card-body" style="font-size: 13px; line-height: 1.8;">
+        <div><strong>Name:</strong> {{ complaint.student_name }}</div>
+        <div><strong>Roll No:</strong> {{ complaint.student_roll or 'N/A' }}</div>
+        <div><strong>Email:</strong> {{ complaint.student_email }}</div>
+        <div><strong>Phone:</strong> {{ complaint.student_phone or 'Not provided' }}</div>
+      </div>
+    </div>
+
+    <!-- Assigned Department & Staff Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>🏢</span> Assignment Status</h3>
+      </div>
+      <div class="card-body" style="font-size: 13px; line-height: 1.8;">
+        <div><strong>Department:</strong> {{ complaint.department_name or 'Unassigned' }}</div>
+        <div>
+          <strong>Assigned Officer:</strong>
+          {% if complaint.assigned_staff_name %}
+            <span style="color: var(--primary); font-weight: 600;">{{ complaint.assigned_staff_name }}</span>
+          {% else %}
+            <span style="color: var(--text-muted); font-style: italic;">Department Pool</span>
+          {% endif %}
+        </div>
+        {% if complaint.assigned_staff_email %}
+          <div><strong>Staff Contact:</strong> {{ complaint.assigned_staff_email }}</div>
+        {% endif %}
+
+        {% if current_user.role == 'admin' %}
+          <div style="margin-top: 14px;">
+            <button type="button" class="btn btn-outline btn-sm" style="width: 100%;" data-modal-target="#assignModal">
+              Change Assignment
+            </button>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================
+     MODAL 1: Update Status Modal (Staff & Admin)
+     ======================================================================== -->
+{% if current_user.role in ('staff', 'admin') %}
+<div class="modal-backdrop" id="statusUpdateModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3>Update Complaint Status</h3>
+      <button type="button" class="modal-close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('update_complaint_status', id=complaint.id) }}" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="status" class="form-label">Select New Status <span class="required">*</span></label>
+          <select name="status" id="status" class="form-control" required>
+            <option value="Assigned" {% if complaint.status == 'Assigned' %}selected{% endif %}>Assigned (Acknowledged)</option>
+            <option value="In Progress" {% if complaint.status == 'In Progress' %}selected{% endif %}>In Progress (Work underway)</option>
+            <option value="Resolved" {% if complaint.status == 'Resolved' %}selected{% endif %}>Resolved (Issue fixed &amp; verified)</option>
+            <option value="Closed" {% if complaint.status == 'Closed' %}selected{% endif %}>Closed</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="comment" class="form-label">Resolution Remarks / Progress Note <span class="required">*</span></label>
+          <textarea name="comment" id="comment" class="form-control" rows="4" placeholder="Detail the steps taken, parts replaced, technician dispatch, or reason for resolution..." required></textarea>
+          <div class="form-hint">This note will appear in the student's activity timeline and trigger an instant notification.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save &amp; Notify Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ========================================================================
+     MODAL 2: Admin Assign Department & Staff Modal
+     ======================================================================== -->
+{% if current_user.role == 'admin' %}
+<div class="modal-backdrop" id="assignModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3>Assign Department &amp; Staff</h3>
+      <button type="button" class="modal-close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('assign_complaint', id=complaint.id) }}" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="assignDeptSelect" class="form-label">Responsible Department <span class="required">*</span></label>
+          <select name="department_id" id="assignDeptSelect" class="form-control" required>
+            <option value="">-- Choose Department --</option>
+            {% for d in departments %}
+              <option value="{{ d.id }}" {% if complaint.department_id == d.id %}selected{% endif %}>
+                {{ d.name }} ({{ d.code }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="assignStaffSelect" class="form-label">Specific Staff Officer (Optional)</label>
+          <select name="assigned_to" id="assignStaffSelect" class="form-control">
+            <option value="">-- Assign to Department Pool (Unassigned Staff) --</option>
+            {% for s in staff_members %}
+              <option value="{{ s.id }}" {% if complaint.assigned_to == s.id %}selected{% endif %}>
+                {{ s.full_name }} ({{ s.department_name }})
+              </option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Selecting a department updates the available staff members dynamically.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="remarks" class="form-label">Administrative Assignment Remarks</label>
+          <textarea name="remarks" id="remarks" class="form-control" rows="3" placeholder="Optional internal instructions for the department lead or assigned staff..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

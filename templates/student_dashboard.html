@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - College Complaint System{% endblock %}
+{% block page_title %}Student Grievance Dashboard{% endblock %}
+{% block breadcrumb %}Welcome back, {{ current_user.full_name }} (Roll: {{ current_user.roll_number }}){% endblock %}
+
+{% block content %}
+<!-- Metric Cards Grid -->
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue">📁</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.total }}</div>
+      <div class="label">Total Complaints</div>
+    </div>
+  </div>
+
+  <div class="stat-card amber">
+    <div class="stat-icon amber">⏳</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.pending }}</div>
+      <div class="label">Pending Review</div>
+    </div>
+  </div>
+
+  <div class="stat-card purple">
+    <div class="stat-icon purple">⚙️</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.in_progress }}</div>
+      <div class="label">In Progress</div>
+    </div>
+  </div>
+
+  <div class="stat-card emerald">
+    <div class="stat-icon emerald">✅</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.resolved }}</div>
+      <div class="label">Resolved</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Action Banner -->
+<div class="card" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; border: none;">
+  <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #ffffff;">Experiencing a Campus Facility Issue?</h3>
+      <p style="font-size: 13px; color: #dbeafe;">File a formal complaint for Hostel, Wi-Fi, Classroom, or Infrastructure repairs and track its real-time resolution.</p>
+    </div>
+    <a href="{{ url_for('submit_complaint') }}" class="btn" style="background: #ffffff; color: #1e3a8a; font-weight: 700; box-shadow: var(--shadow-md);">
+      <span>➕</span> Submit New Complaint
+    </a>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+  <!-- Recent Complaints Table -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h3><span>📋</span> My Recent Complaints</h3>
+      <a href="{{ url_for('student_complaints') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      {% if complaints %}
+        <div class="table-responsive" style="border: none; border-radius: 0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ticket ID</th>
+                <th>Category</th>
+                <th>Title & Location</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in complaints %}
+                <tr>
+                  <td>
+                    <a href="{{ url_for('complaint_details', id=c.id) }}" class="ticket-code">{{ c.ticket_id }}</a>
+                  </td>
+                  <td>
+                    <span class="badge badge-cat">{{ c.category }}</span>
+                  </td>
+                  <td class="complaint-title-cell">
+                    <span class="title-text">{{ c.title }}</span>
+                    <span class="meta-sub">📍 {{ c.location or 'Campus' }} &bull; {{ c.created_at[:10] }}</span>
+                  </td>
+                  <td>
+                    <span style="font-size: 13px; color: #475569;">{{ c.department_name or 'Pending Assignment' }}</span>
+                  </td>
+                  <td>
+                    {% if c.status == 'Pending' %}
+                      <span class="badge badge-pending"><span class="badge-dot"></span>Pending</span>
+                    {% elif c.status == 'Assigned' %}
+                      <span class="badge badge-assigned"><span class="badge-dot"></span>Assigned</span>
+                    {% elif c.status == 'In Progress' %}
+                      <span class="badge badge-in-progress"><span class="badge-dot"></span>In Progress</span>
+                    {% elif c.status in ('Resolved', 'Closed') %}
+                      <span class="badge badge-resolved"><span class="badge-dot"></span>Resolved</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 6px;">
+                      <a href="{{ url_for('complaint_details', id=c.id) }}" class="btn btn-secondary btn-sm" title="View details">
+                        View
+                      </a>
+                      {% if c.status in ('Resolved', 'Closed') %}
+                        {% if c.feedback_id %}
+                          <span style="font-size: 12px; color: #047857; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">
+                            ⭐ {{ c.feedback_rating }}/5
+                          </span>
+                        {% else %}
+                          <a href="{{ url_for('submit_feedback', id=c.id) }}" class="btn btn-warning btn-sm" style="color: #78350f; font-weight: 700;">
+                            Feedback
+                          </a>
+                        {% endif %}
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <h4>No complaints submitted yet</h4>
+          <p>When you submit a complaint, it will appear here with live tracking.</p>
+          <div style="margin-top: 16px;">
+            <a href="{{ url_for('submit_complaint') }}" class="btn btn-primary btn-sm">Submit Your First Complaint</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Notifications Feed -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h3><span>🔔</span> Recent Updates</h3>
+      <a href="{{ url_for('notifications') }}" class="btn btn-outline btn-sm">All</a>
+    </div>
+    <div class="card-body">
+      {% if notifications %}
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          {% for n in notifications %}
+            <div style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: {% if not n.is_read %}#eff6ff{% else %}#ffffff{% endif %};">
+              <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 4px;">
+                {{ n.message }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                <span>{{ n.created_at[:16] }}</span>
+                {% if n.complaint_id %}
+                  <a href="{{ url_for('mark_notification_read', id=n.id) }}" style="font-weight: 600;">View Ticket &rarr;</a>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 24px 12px;">
+          <div class="empty-state-icon">🔕</div>
+          <h4>No updates</h4>
+          <p style="font-size: 12px;">You will receive alerts here when staff act on your complaints.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Users Directory - College Complaint System{% endblock %}
+{% block page_title %}College User Accounts Directory{% endblock %}
+{% block breadcrumb %}Master record of students, departmental staff, and administrative personnel{% endblock %}
+
+{% block content %}
+<!-- Filter Toolbar -->
+<div class="toolbar">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="clientTableSearch" placeholder="Filter by name, username, email, roll number..." value="{{ search }}">
+  </div>
+
+  <select id="clientCategoryFilter" class="filter-select">
+    <option value="">All Roles</option>
+    <option value="student" {% if role_filter == 'student' %}selected{% endif %}>Students</option>
+    <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Staff Officers</option>
+    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Administrators</option>
+  </select>
+
+  <a href="{{ request.path }}" class="btn btn-outline btn-sm">Reset</a>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive" style="border: none; border-radius: 0;">
+      <table class="data-table" id="filterableTable">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Roll No / Dept</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Registered Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if users %}
+            {% for u in users %}
+              <tr class="table-row-item" data-category="{{ u.role }}">
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="user-avatar" style="width: 32px; height: 32px; font-size: 12px; background: {% if u.role == 'admin' %}#b45309{% elif u.role == 'staff' %}#6d28d9{% else %}#1d4ed8{% endif %};">
+                      {{ u.full_name[:1] }}
+                    </div>
+                    <div>
+                      <strong style="font-size: 13px; display: block;">{{ u.full_name }}</strong>
+                      <span style="font-size: 11px; color: var(--text-muted);">@{{ u.username }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if u.role == 'student' %}
+                    <span class="badge" style="background: #dbeafe; color: #1e40af;">Student</span>
+                  {% elif u.role == 'staff' %}
+                    <span class="badge" style="background: #ede9fe; color: #6d28d9;">Staff</span>
+                  {% elif u.role == 'admin' %}
+                    <span class="badge" style="background: #fef3c7; color: #92400e;">Administrator</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.role == 'student' %}
+                    <span style="font-family: monospace; font-weight: 600;">{{ u.roll_number or 'N/A' }}</span>
+                  {% elif u.role == 'staff' %}
+                    <span style="font-size: 13px; color: var(--primary);">{{ u.department_name or 'Unassigned' }}</span>
+                  {% else %}
+                    <span style="font-size: 13px; color: var(--text-muted);">Central Administration</span>
+                  {% endif %}
+                </td>
+                <td style="font-size: 13px;">{{ u.email }}</td>
+                <td style="font-size: 13px; color: var(--text-secondary);">{{ u.phone or 'Not provided' }}</td>
+                <td style="font-size: 12px; color: var(--text-muted);">{{ u.created_at[:10] }}</td>
+              </tr>
+            {% endfor %}
+            <tr id="noFilterResultsRow" style="display: none;">
+              <td colspan="6" class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <h4>No users match your filter criteria</h4>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="6" class="empty-state">
+                <h4>No registered users found</h4>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

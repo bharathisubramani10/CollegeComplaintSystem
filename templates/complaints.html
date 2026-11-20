@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} - College Complaint System{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block breadcrumb %}
+  {% if user_role == 'student' %}
+    List of grievances filed by you
+  {% elif user_role == 'staff' %}
+    Complaints assigned to {{ current_user.department_name }}
+  {% else %}
+    Master directory of all campus complaints
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Search & Filter Toolbar -->
+<div class="toolbar">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="clientTableSearch" placeholder="Filter by Ticket ID, title, student name, or location..." value="{{ search_query }}">
+  </div>
+
+  <!-- Category Filter -->
+  <select id="clientCategoryFilter" class="filter-select">
+    <option value="">All Categories</option>
+    <option value="Hostel" {% if category_filter == 'Hostel' %}selected{% endif %}>Hostel</option>
+    <option value="Wi-Fi" {% if category_filter == 'Wi-Fi' %}selected{% endif %}>Wi-Fi</option>
+    <option value="Classroom" {% if category_filter == 'Classroom' %}selected{% endif %}>Classroom</option>
+    <option value="Maintenance" {% if category_filter == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+    <option value="Other" {% if category_filter == 'Other' %}selected{% endif %}>Other</option>
+  </select>
+
+  <!-- Status Filter -->
+  <select id="clientStatusFilter" class="filter-select">
+    <option value="">All Statuses</option>
+    <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+    <option value="Assigned" {% if status_filter == 'Assigned' %}selected{% endif %}>Assigned</option>
+    <option value="In Progress" {% if status_filter == 'In Progress' %}selected{% endif %}>In Progress</option>
+    <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+  </select>
+
+  <!-- Reset -->
+  <a href="{{ request.path }}" class="btn btn-outline btn-sm" title="Clear all filters">
+    Reset
+  </a>
+
+  {% if user_role == 'student' %}
+    <a href="{{ url_for('submit_complaint') }}" class="btn btn-primary btn-sm" style="margin-left: auto;">
+      <span>➕</span> New Complaint
+    </a>
+  {% endif %}
+</div>
+
+<!-- Complaints Data Table -->
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive" style="border: none; border-radius: 0;">
+      <table class="data-table" id="filterableTable">
+        <thead>
+          <tr>
+            <th>Ticket ID</th>
+            {% if user_role != 'student' %}
+              <th>Student</th>
+            {% endif %}
+            <th>Category</th>
+            <th>Complaint Title &amp; Location</th>
+            <th>Department</th>
+            {% if user_role == 'admin' %}
+              <th>Assigned Staff</th>
+            {% endif %}
+            <th>Date Filed</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if complaints %}
+            {% for c in complaints %}
+              <tr class="table-row-item" data-category="{{ c.category }}" data-status="{{ c.status }}">
+                <td>
+                  <a href="{{ url_for('complaint_details', id=c.id) }}" class="ticket-code">{{ c.ticket_id }}</a>
+                </td>
+
+                {% if user_role != 'student' %}
+                  <td>
+                    <strong style="font-size: 13px; display: block;">{{ c.student_name }}</strong>
+                    <span style="font-size: 11px; color: var(--text-muted);">{{ c.student_email }}</span>
+                  </td>
+                {% endif %}
+
+                <td>
+                  <span class="badge badge-cat">{{ c.category }}</span>
+                </td>
+
+                <td class="complaint-title-cell">
+                  <span class="title-text">{{ c.title }}</span>
+                  <span class="meta-sub">📍 {{ c.location or 'General' }}</span>
+                </td>
+
+                <td>
+                  <span style="font-size: 13px; color: var(--text-secondary);">
+                    {{ c.department_name or 'Unassigned' }}
+                  </span>
+                </td>
+
+                {% if user_role == 'admin' %}
+                  <td>
+                    {% if c.assigned_staff_name %}
+                      <span style="font-size: 12px; color: #1e3a8a; font-weight: 600;">{{ c.assigned_staff_name }}</span>
+                    {% else %}
+                      <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Unassigned</span>
+                    {% endif %}
+                  </td>
+                {% endif %}
+
+                <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                  {{ c.created_at[:10] }}
+                </td>
+
+                <td>
+                  {% if c.status == 'Pending' %}
+                    <span class="badge badge-pending"><span class="badge-dot"></span>Pending</span>
+                  {% elif c.status == 'Assigned' %}
+                    <span class="badge badge-assigned"><span class="badge-dot"></span>Assigned</span>
+                  {% elif c.status == 'In Progress' %}
+                    <span class="badge badge-in-progress"><span class="badge-dot"></span>In Progress</span>
+                  {% elif c.status in ('Resolved', 'Closed') %}
+                    <span class="badge badge-resolved"><span class="badge-dot"></span>Resolved</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <a href="{{ url_for('complaint_details', id=c.id) }}" class="btn btn-secondary btn-sm">
+                      Details
+                    </a>
+                    {% if user_role == 'student' and c.status in ('Resolved', 'Closed') %}
+                      {% if not c.feedback_id %}
+                        <a href="{{ url_for('submit_feedback', id=c.id) }}" class="btn btn-warning btn-sm" style="color: #78350f; font-weight: 700;">
+                          Rate
+                        </a>
+                      {% else %}
+                        <span style="font-size: 12px; color: #047857; font-weight: 600;">★ {{ c.feedback_rating }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+            <tr id="noFilterResultsRow" style="display: none;">
+              <td colspan="9" class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <h4>No matching complaints found</h4>
+                <p>Try adjusting your search criteria or filter options.</p>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="9" class="empty-state">
+                <div class="empty-state-icon">📂</div>
+                <h4>No complaints found</h4>
+                <p>No complaints match the current filter selection.</p>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

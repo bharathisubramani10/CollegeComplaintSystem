@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - College Complaint System{% endblock %}
+{% block page_title %}Grievance Redressal Reports &amp; Analytics{% endblock %}
+{% block breadcrumb %}Institutional performance statistics and department resolution metrics{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Summary Grid -->
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue">📁</div>
+    <div class="stat-data">
+      <div class="value">{{ total }}</div>
+      <div class="label">Total Complaints</div>
+    </div>
+  </div>
+
+  <div class="stat-card amber">
+    <div class="stat-icon amber">⏳</div>
+    <div class="stat-data">
+      <div class="value">{{ pending }}</div>
+      <div class="label">Pending Review</div>
+    </div>
+  </div>
+
+  <div class="stat-card purple">
+    <div class="stat-icon purple">⚙️</div>
+    <div class="stat-data">
+      <div class="value">{{ in_progress }}</div>
+      <div class="label">In Progress</div>
+    </div>
+  </div>
+
+  <div class="stat-card emerald">
+    <div class="stat-icon emerald">✅</div>
+    <div class="stat-data">
+      <div class="value">{{ resolved }}</div>
+      <div class="label">Resolved ({{ resolution_rate }}%)</div>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+  <!-- Department Performance Table -->
+  <div class="card">
+    <div class="card-header">
+      <h3><span>🏢</span> Department Resolution Statistics</h3>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <div class="table-responsive" style="border: none; border-radius: 0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Total</th>
+              <th>Pending</th>
+              <th>In Progress</th>
+              <th>Resolved</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in dept_stats %}
+              <tr>
+                <td><strong>{{ d.name }}</strong></td>
+                <td>{{ d.total or 0 }}</td>
+                <td><span class="badge badge-pending">{{ d.pending or 0 }}</span></td>
+                <td><span class="badge badge-in-progress">{{ d.in_progress or 0 }}</span></td>
+                <td><span class="badge badge-resolved">{{ d.resolved or 0 }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Breakdown Table -->
+  <div class="card">
+    <div class="card-header">
+      <h3><span>📂</span> Category Distribution</h3>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <div class="table-responsive" style="border: none; border-radius: 0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Total Filed</th>
+              <th>Resolved</th>
+              <th>Resolution %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cat in category_stats %}
+              {% set cat_total = cat.count %}
+              {% set cat_res = cat.resolved_count or 0 %}
+              {% set cat_pct = ((cat_res / cat_total) * 100) | round(1) if cat_total > 0 else 0 %}
+              <tr>
+                <td><span class="badge badge-cat">{{ cat.category }}</span></td>
+                <td><strong>{{ cat_total }}</strong></td>
+                <td><span class="badge badge-resolved">{{ cat_res }}</span></td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; min-width: 60px;">
+                      <div style="height: 100%; width: {{ cat_pct }}%; background: #2563eb;"></div>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 600;">{{ cat_pct }}%</span>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Student Satisfaction Rating Breakdown -->
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <h3><span>⭐</span> Student Satisfaction Rating Distribution</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+      {% for r in range(5, 0, -1) %}
+        {% set r_count = 0 %}
+        {% for item in rating_breakdown %}
+          {% if item.rating == r %}
+            {% set r_count = item.count %}
+          {% endif %}
+        {% endfor %}
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; text-align: center;">
+          <div style="color: #f59e0b; font-size: 20px; margin-bottom: 4px;">
+            {% for s in range(r) %}★{% endfor %}
+          </div>
+          <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ r_count }}</div>
+          <div style="font-size: 12px; color: var(--text-muted);">{{ r }} Star Reviews</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

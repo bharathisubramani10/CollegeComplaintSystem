@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Control Center - College Complaint System{% endblock %}
+{% block page_title %}Administrative Control Dashboard{% endblock %}
+{% block breadcrumb %}College-Wide Grievance Redressal Monitoring{% endblock %}
+
+{% block content %}
+<!-- Metric Cards Grid -->
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue">📊</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.total }}</div>
+      <div class="label">Total Complaints</div>
+    </div>
+  </div>
+
+  <div class="stat-card amber">
+    <div class="stat-icon amber">⏳</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.pending }}</div>
+      <div class="label">Pending Action</div>
+    </div>
+  </div>
+
+  <div class="stat-card purple">
+    <div class="stat-icon purple">⚙️</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.in_progress }}</div>
+      <div class="label">In Progress</div>
+    </div>
+  </div>
+
+  <div class="stat-card emerald">
+    <div class="stat-icon emerald">✅</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.resolved }}</div>
+      <div class="label">Resolved Complaints</div>
+    </div>
+  </div>
+
+  <div class="stat-card blue">
+    <div class="stat-icon blue">👥</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.users_count }}</div>
+      <div class="label">Total Users</div>
+    </div>
+  </div>
+
+  <div class="stat-card amber">
+    <div class="stat-icon amber">⭐</div>
+    <div class="stat-data">
+      <div class="value">{{ stats.avg_rating }} / 5</div>
+      <div class="label">Avg Satisfaction ({{ stats.feedback_count }} reviews)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Department Resolution Overview -->
+<div class="card">
+  <div class="card-header">
+    <h3><span>🏢</span> Department Workload & Resolution Metrics</h3>
+    <a href="{{ url_for('admin_reports') }}" class="btn btn-outline btn-sm">Full Analytics Report</a>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive" style="border: none; border-radius: 0;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Department</th>
+            <th>Total Filed</th>
+            <th>Pending</th>
+            <th>In Progress</th>
+            <th>Resolved</th>
+            <th>Resolution Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in departments_summary %}
+            {% set total = d.total_complaints or 0 %}
+            {% set resolved = d.resolved_count or 0 %}
+            {% set rate = ((resolved / total) * 100) | round(1) if total > 0 else 0 %}
+            <tr>
+              <td>
+                <strong style="color: var(--primary);">{{ d.name }}</strong>
+                <span style="font-size: 11px; color: var(--text-muted); display: block;">Code: {{ d.code }}</span>
+              </td>
+              <td><strong>{{ total }}</strong></td>
+              <td>
+                {% if d.pending_count > 0 %}
+                  <span class="badge badge-pending">{{ d.pending_count }}</span>
+                {% else %}
+                  <span style="color: var(--text-muted);">0</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.in_progress_count > 0 %}
+                  <span class="badge badge-in-progress">{{ d.in_progress_count }}</span>
+                {% else %}
+                  <span style="color: var(--text-muted);">0</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if resolved > 0 %}
+                  <span class="badge badge-resolved">{{ resolved }}</span>
+                {% else %}
+                  <span style="color: var(--text-muted);">0</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; min-width: 80px;">
+                    <div style="height: 100%; width: {{ rate }}%; background: #10b981; border-radius: 4px;"></div>
+                  </div>
+                  <span style="font-weight: 600; font-size: 12px; min-width: 45px;">{{ rate }}%</span>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+  <!-- Recent College Complaints -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h3><span>📋</span> Recent Campus Complaints</h3>
+      <a href="{{ url_for('admin_complaints') }}" class="btn btn-primary btn-sm">View &amp; Manage All</a>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      {% if recent_complaints %}
+        <div class="table-responsive" style="border: none; border-radius: 0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Student</th>
+                <th>Issue</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in recent_complaints %}
+                <tr>
+                  <td>
+                    <a href="{{ url_for('complaint_details', id=c.id) }}" class="ticket-code">{{ c.ticket_id }}</a>
+                  </td>
+                  <td>
+                    <span style="font-weight: 600; font-size: 13px; display: block;">{{ c.student_name }}</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">{{ c.created_at[:10] }}</span>
+                  </td>
+                  <td class="complaint-title-cell">
+                    <span class="badge badge-cat" style="margin-bottom: 4px; display: inline-block;">{{ c.category }}</span>
+                    <span class="title-text">{{ c.title }}</span>
+                  </td>
+                  <td>
+                    <span style="font-size: 12px; color: var(--text-secondary);">
+                      {{ c.department_name or 'Unassigned' }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if c.status == 'Pending' %}
+                      <span class="badge badge-pending"><span class="badge-dot"></span>Pending</span>
+                    {% elif c.status == 'Assigned' %}
+                      <span class="badge badge-assigned"><span class="badge-dot"></span>Assigned</span>
+                    {% elif c.status == 'In Progress' %}
+                      <span class="badge badge-in-progress"><span class="badge-dot"></span>In Progress</span>
+                    {% elif c.status in ('Resolved', 'Closed') %}
+                      <span class="badge badge-resolved"><span class="badge-dot"></span>Resolved</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ url_for('complaint_details', id=c.id) }}" class="btn btn-secondary btn-sm">
+                      Inspect
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No complaints filed yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Student Feedback Stream -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h3><span>💬</span> Student Ratings &amp; Feedback</h3>
+    </div>
+    <div class="card-body">
+      {% if recent_feedback %}
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          {% for f in recent_feedback %}
+            <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div class="rating-display">
+                  {% for i in range(1, 6) %}
+                    {% if i <= f.rating %}
+                      <span>★</span>
+                    {% else %}
+                      <span class="star-empty">★</span>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <span class="ticket-code" style="font-size: 11px;">{{ f.ticket_id }}</span>
+              </div>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-style: italic;">
+                "{{ f.comments or 'No written comment.' }}"
+              </p>
+              <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                <span>By {{ f.student_name }}</span>
+                <span>{{ f.created_at[:10] }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 24px 12px;">
+          <div class="empty-state-icon">⭐</div>
+          <h4>No feedback submitted yet</h4>
+          <p style="font-size: 12px;">Student ratings and comments for resolved tickets will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

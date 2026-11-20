@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Feedback - {{ complaint.ticket_id }}{% endblock %}
+{% block page_title %}Complaint Resolution Feedback{% endblock %}
+{% block breadcrumb %}
+  <a href="{{ url_for('complaint_details', id=complaint.id) }}">{{ complaint.ticket_id }}</a> &rsaquo; Submit Feedback
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <h3><span>⭐</span> Rate the Resolution Service</h3>
+    </div>
+    <div class="card-body">
+      <!-- Complaint Quick Summary -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span class="ticket-code">{{ complaint.ticket_id }}</span>
+          <span class="badge badge-resolved"><span class="badge-dot"></span>Resolved</span>
+        </div>
+        <strong style="font-size: 15px; color: var(--text-primary); display: block; margin-bottom: 4px;">{{ complaint.title }}</strong>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">{{ complaint.description[:120] }}{% if complaint.description|length > 120 %}...{% endif %}</p>
+      </div>
+
+      <form action="{{ url_for('submit_feedback', id=complaint.id) }}" method="POST">
+        <!-- Star Rating -->
+        <div class="form-group" style="text-align: center; padding: 16px 0;">
+          <label class="form-label" style="font-size: 15px; margin-bottom: 12px;">
+            How satisfied are you with the resolution? <span class="required">*</span>
+          </label>
+          <div class="star-rating">
+            <input type="radio" id="star5" name="rating" value="5" required>
+            <label for="star5" title="5 Stars - Outstanding">★</label>
+
+            <input type="radio" id="star4" name="rating" value="4">
+            <label for="star4" title="4 Stars - Good">★</label>
+
+            <input type="radio" id="star3" name="rating" value="3">
+            <label for="star3" title="3 Stars - Average">★</label>
+
+            <input type="radio" id="star2" name="rating" value="2">
+            <label for="star2" title="2 Stars - Poor">★</label>
+
+            <input type="radio" id="star1" name="rating" value="1">
+            <label for="star1" title="1 Star - Very Poor">★</label>
+          </div>
+          <div id="ratingDescriptionText" style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">
+            Click on a star to set your rating (1 to 5)
+          </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="form-group">
+          <label for="comments" class="form-label">Feedback Comments / Suggestions</label>
+          <textarea name="comments" id="comments" class="form-control" rows="4" placeholder="Share your experience: Was the issue fixed in time? Was the staff courteous and effective?"></textarea>
+          <div class="form-hint">Your feedback helps the administration evaluate department response times.</div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">
+            Submit Feedback
+          </button>
+          <a href="{{ url_for('complaint_details', id=complaint.id) }}" class="btn btn-secondary">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

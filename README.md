@@ -317,3 +317,18 @@ The repository is fully configured for Git:
 
 ## 🎓 Academic Mini-Project Suitability
 This project was designed with clean, readable code and clear separation of concerns (MVC architecture), making it an ideal demonstration project for college examinations, technical vivas, and software engineering coursework.
+## Git Development Workflow
+
+This project uses Git and GitHub for version control.
+
+- `main` is the stable branch.
+- Feature branches are created for individual development tasks.
+- Changes are committed with descriptive commit messages.
+- Feature branches are pushed to GitHub.
+- Pull Requests are used to review changes before merging into `main`.
+
+### Branch Naming Convention
+
+Feature branches follow this format:
+
+`feature/feature-name`
